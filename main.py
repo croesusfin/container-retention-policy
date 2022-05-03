@@ -279,15 +279,12 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
             else:
                 image_tags = []
 
-            package_name = str(version["package_html_url"]).split('/')[-1]
-            version_identifier = f'{package_name}:{image_tags}'
-
-            if inputs.debug:
-                print(f'[DEBUG] Checking \'{version_identifier}\' created {version["created_at"]}...')
-
             # Parse either the update-at timestamp, or the created-at timestamp
             # depending on which on the user has specified that we should use
             updated_or_created_at = parse(version[inputs.timestamp_to_use.value])
+
+            package_name = str(version["package_html_url"]).split('/')[-1]
+            version_identifier = f'{package_name}:{image_tags}'
 
             if not updated_or_created_at:
                 print(f'Skipping image version {version["id"]}. Unable to parse timestamps.')
@@ -295,8 +292,8 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
 
             if inputs.cut_off < updated_or_created_at:
                 if inputs.debug:
-                    print(f'[DEBUG] Skipping \'{version_identifier}\' because it\'s above our datetime cut-off'
-                          f' we\'re only looking to delete containers older than some timestamp')
+                    print(f'[DEBUG] Skipping \'{version_identifier}\' because \'{updated_or_created_at}\' is above our '
+                          f'datetime cut-off. We\'re only looking to delete containers older than some timestamp')
                 continue
 
             if inputs.untagged_only and image_tags:
