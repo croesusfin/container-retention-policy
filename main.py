@@ -279,8 +279,11 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
             else:
                 image_tags = []
 
+            package_name = str(version["package_html_url"]).split('/')[-1]
+            version_identifier = f'{package_name}:{image_tags}'
+
             if inputs.debug:
-                print(f'[DEBUG] Checking \'{version["html_url"]}\'{image_tags} created {version["created_at"]}...')
+                print(f'[DEBUG] Checking \'{version_identifier}\' created {version["created_at"]}...')
 
             # Parse either the update-at timestamp, or the created-at timestamp
             # depending on which on the user has specified that we should use
@@ -292,19 +295,20 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
 
             if inputs.cut_off < updated_or_created_at:
                 if inputs.debug:
-                    print(f'[DEBUG] Skipping because it\'s above our datetime cut-off'
+                    print(f'[DEBUG] Skipping \'{version_identifier}\' because it\'s above our datetime cut-off'
                           f' we\'re only looking to delete containers older than some timestamp')
                 continue
 
             if inputs.untagged_only and image_tags:
                 if inputs.debug:
-                    print(f'[DEBUG] Skipping because no tagged images should be deleted '
+                    print(f'[DEBUG] Skipping \'{version_identifier}\' because no tagged images should be deleted '
                           f'We could proceed if image_tags was empty, but it\'s not')
                 continue
 
             if not image_tags and not inputs.filter_include_untagged:
                 if inputs.debug:
-                    print(f'[DEBUG] Skipping, because the filter_include_untagged setting is False')
+                    print(f'[DEBUG] Skipping \'{version_identifier}\' because '
+                          f'the filter_include_untagged setting is False')
                 continue
 
             delete_image = not inputs.filter_tags
@@ -319,7 +323,8 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
             for skip_tag in inputs.skip_tags:
                 if any(fnmatch(tag, skip_tag) for tag in image_tags):
                     if inputs.debug:
-                        print(f'[DEBUG] Skipping because this image version is tagged with a protected tag')
+                        print(f'[DEBUG] Skipping \'{version_identifier}\' because this image version '
+                              f'is tagged with a protected tag')
                     delete_image = False
 
             if delete_image:
