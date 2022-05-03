@@ -293,13 +293,12 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
             if inputs.cut_off < updated_or_created_at:
                 if inputs.debug:
                     print(f'[DEBUG] Skipping \'{version_identifier}\' because \'{updated_or_created_at}\' is above our '
-                          f'datetime cut-off. We\'re only looking to delete containers older than some timestamp')
+                          f'datetime cut-off')
                 continue
 
             if inputs.untagged_only and image_tags:
                 if inputs.debug:
-                    print(f'[DEBUG] Skipping \'{version_identifier}\' because no tagged images should be deleted '
-                          f'We could proceed if image_tags was empty, but it\'s not')
+                    print(f'[DEBUG] Skipping \'{version_identifier}\' because no tagged images should be deleted')
                 continue
 
             if not image_tags and not inputs.filter_include_untagged:
