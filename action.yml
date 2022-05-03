@@ -42,6 +42,10 @@ inputs:
     description: "Whether to consider untagged images for deletion."
     required: false
     default: 'true'
+  debug:
+    description: "Wether to output relevant information for deletion."
+    required: false
+    default: 'false'
 outputs:
   needs-github-assistance:
     description: 'Comma-separated list of image names and tags, for image versions that are public and have more than 5000 downloads.'
@@ -64,3 +68,4 @@ runs:
     - ${{ inputs.keep-at-least }}
     - ${{ inputs.filter-tags }}
     - ${{ inputs.filter-include-untagged }}
+    - ${{ inputs.debug }}
