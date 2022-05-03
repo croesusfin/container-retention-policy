@@ -208,7 +208,7 @@ class Inputs(BaseModel):
     keep_at_least: conint(ge=0) = 0  # type: ignore[valid-type]
     filter_tags: list[str]
     filter_include_untagged: bool = True
-    verbose: bool = False
+    debug: bool = False
 
     @validator('image_names', pre=True)
     def parse_image_names(cls, v: str) -> list[ImageName]:
@@ -279,9 +279,8 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
             else:
                 image_tags = []
 
-            if inputs.verbose:
-                print(f'[DEBUG] Checking `{version["html_url"]}`, created `{version["created_at"]}`'
-                      f' with tags({image_tags})...')
+            if inputs.debug:
+                print(f'[DEBUG] Checking \'{version["html_url"]}\'{image_tags} created {version["created_at"]}...')
 
             # Parse either the update-at timestamp, or the created-at timestamp
             # depending on which on the user has specified that we should use
@@ -292,19 +291,19 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
                 continue
 
             if inputs.cut_off < updated_or_created_at:
-                if inputs.verbose:
+                if inputs.debug:
                     print(f'[DEBUG] Skipping because it\'s above our datetime cut-off'
                           f' we\'re only looking to delete containers older than some timestamp')
                 continue
 
             if inputs.untagged_only and image_tags:
-                if inputs.verbose:
+                if inputs.debug:
                     print(f'[DEBUG] Skipping because no tagged images should be deleted '
                           f'We could proceed if image_tags was empty, but it\'s not')
                 continue
 
             if not image_tags and not inputs.filter_include_untagged:
-                if inputs.verbose:
+                if inputs.debug:
                     print(f'[DEBUG] Skipping, because the filter_include_untagged setting is False')
                 continue
 
@@ -319,7 +318,7 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
 
             for skip_tag in inputs.skip_tags:
                 if any(fnmatch(tag, skip_tag) for tag in image_tags):
-                    if inputs.verbose:
+                    if inputs.debug:
                         print(f'[DEBUG] Skipping because this image version is tagged with a protected tag')
                     delete_image = False
 
@@ -366,7 +365,7 @@ async def main(
         keep_at_least: str,
         filter_tags: str,
         filter_include_untagged: str,
-        verbose: str,
+        debug: str,
 ) -> None:
     """
     Delete old image versions.
@@ -393,7 +392,7 @@ async def main(
     :param filter_tags: Comma-separated list of tags to consider for deletion.
         Supports wildcard '*', '?', '[seq]' and '[!seq]' via Unix shell-style wildcards
     :param filter_include_untagged: Whether to consider untagged images for deletion.
-    :param verbose: Whether to output relevant information for deletion.
+    :param debug: Whether to output relevant information for deletion.
     """
     inputs = Inputs(
         image_names=image_names,
@@ -406,7 +405,7 @@ async def main(
         keep_at_least=keep_at_least,
         filter_tags=filter_tags,
         filter_include_untagged=filter_include_untagged,
-        verbose=verbose,
+        debug=debug,
     )
     async with AsyncClient(
             headers={'accept': 'application/vnd.github.v3+json', 'Authorization': f'Bearer {token}'}

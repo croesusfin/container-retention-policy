@@ -42,7 +42,7 @@ inputs:
     description: "Whether to consider untagged images for deletion."
     required: false
     default: 'true'
-  verbose:
+  debug:
     description: "Wether to output relevant information for deletion."
     required: false
     default: 'false'
@@ -68,4 +68,4 @@ runs:
     - ${{ inputs.keep-at-least }}
     - ${{ inputs.filter-tags }}
     - ${{ inputs.filter-include-untagged }}
-    - ${{ inputs.verbose }}
+    - ${{ inputs.debug }}
