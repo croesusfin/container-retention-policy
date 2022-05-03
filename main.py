@@ -211,7 +211,7 @@ class Inputs(BaseModel):
     verbose: bool = False
 
     @validator('image_names', pre=True)
-    def parse_image_names(self, v: str) -> list[ImageName]:
+    def parse_image_names(cls, v: str) -> list[ImageName]:
         """
         Return an ImageName for each images name received.
 
@@ -227,11 +227,11 @@ class Inputs(BaseModel):
         ]
 
     @validator('skip_tags', 'filter_tags', pre=True)
-    def parse_comma_separate_string_as_list(self, v: str) -> list[str]:
+    def parse_comma_separate_string_as_list(cls, v: str) -> list[str]:
         return [] if not v else [i.strip() for i in v.split(',')]
 
     @validator('cut_off', pre=True)
-    def parse_human_readable_datetime(self, v: str) -> datetime:
+    def parse_human_readable_datetime(cls, v: str) -> datetime:
         parsed_cutoff = parse(v)
         if not parsed_cutoff:
             raise ValueError(f"Unable to parse '{v}'")
@@ -240,7 +240,7 @@ class Inputs(BaseModel):
         return parsed_cutoff
 
     @validator('org_name', pre=True)
-    def validate_org_name(self, v: str, values: dict) -> Optional[str]:
+    def validate_org_name(cls, v: str, values: dict) -> Optional[str]:
         if values['account_type'] == AccountType.ORG and not v:
             raise ValueError('org-name is required when account-type is org')
         if v:
