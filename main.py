@@ -279,6 +279,10 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
             else:
                 image_tags = []
 
+            if inputs.verbose:
+                print(f'[DEBUG] Checking `{version["html_url"]}`, created `{version["created_at"]}`'
+                      f' with tags({image_tags})...')
+
             # Parse either the update-at timestamp, or the created-at timestamp
             # depending on which on the user has specified that we should use
             updated_or_created_at = parse(version[inputs.timestamp_to_use.value])
@@ -289,20 +293,19 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
 
             if inputs.cut_off < updated_or_created_at:
                 if inputs.verbose:
-                    print(f'[DEBUG] Skipping image with tags ({image_tags}) because it\'s above our datetime cut-off'
+                    print(f'[DEBUG] Skipping because it\'s above our datetime cut-off'
                           f' we\'re only looking to delete containers older than some timestamp')
                 continue
 
             if inputs.untagged_only and image_tags:
                 if inputs.verbose:
-                    print(f'[DEBUG] Skipping image with tags ({image_tags}) because no tagged images should be deleted '
+                    print(f'[DEBUG] Skipping because no tagged images should be deleted '
                           f'We could proceed if image_tags was empty, but it\'s not')
                 continue
 
             if not image_tags and not inputs.filter_include_untagged:
                 if inputs.verbose:
-                    print(f'[DEBUG] Skipping image with tags ({image_tags}) because the filter_include_untagged'
-                          f' setting is False')
+                    print(f'[DEBUG] Skipping, because the filter_include_untagged setting is False')
                 continue
 
             delete_image = not inputs.filter_tags
@@ -317,8 +320,7 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
             for skip_tag in inputs.skip_tags:
                 if any(fnmatch(tag, skip_tag) for tag in image_tags):
                     if inputs.verbose:
-                        print(f'[DEBUG] Skipping image with tags ({image_tags}) because this image version is tagged '
-                              f'with a protected tag')
+                        print(f'[DEBUG] Skipping because this image version is tagged with a protected tag')
                     delete_image = False
 
             if delete_image:
