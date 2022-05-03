@@ -122,6 +122,7 @@ async def delete_org_package_versions(
     :param image_name: The name of the container image.
     :param version_id: The ID of the image version we're deleting.
     :param http_client: HTTP client.
+    :param semaphore: Semaphore
     :return: Nothing - the API returns a 204.
     """
     url = f'{BASE_URL}/orgs/{org_name}/packages/container/{image_name.encoded}/versions/{version_id}'
@@ -144,6 +145,7 @@ async def delete_package_versions(
     :param image_name: The name of the container image.
     :param version_id: The ID of the image version we're deleting.
     :param http_client: HTTP client.
+    :param semaphore: Semaphore
     :return: Nothing - the API returns a 204.
     """
     url = f'{BASE_URL}/user/packages/container/{image_name.encoded}/versions/{version_id}'
@@ -209,7 +211,7 @@ class Inputs(BaseModel):
     verbose: bool = False
 
     @validator('image_names', pre=True)
-    def parse_image_names(cls, v: str) -> list[ImageName]:
+    def parse_image_names(self, v: str) -> list[ImageName]:
         """
         Return an ImageName for each images name received.
 
@@ -225,11 +227,11 @@ class Inputs(BaseModel):
         ]
 
     @validator('skip_tags', 'filter_tags', pre=True)
-    def parse_comma_separate_string_as_list(cls, v: str) -> list[str]:
+    def parse_comma_separate_string_as_list(self, v: str) -> list[str]:
         return [] if not v else [i.strip() for i in v.split(',')]
 
     @validator('cut_off', pre=True)
-    def parse_human_readable_datetime(cls, v: str) -> datetime:
+    def parse_human_readable_datetime(self, v: str) -> datetime:
         parsed_cutoff = parse(v)
         if not parsed_cutoff:
             raise ValueError(f"Unable to parse '{v}'")
@@ -238,7 +240,7 @@ class Inputs(BaseModel):
         return parsed_cutoff
 
     @validator('org_name', pre=True)
-    def validate_org_name(cls, v: str, values: dict) -> Optional[str]:
+    def validate_org_name(self, v: str, values: dict) -> Optional[str]:
         if values['account_type'] == AccountType.ORG and not v:
             raise ValueError('org-name is required when account-type is org')
         if v:
@@ -269,8 +271,13 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
     async with sem:
         for version in versions:
 
-            if inputs.verbose:
-                print(f'[DEBUG] {version}')
+            # Load the tags for the individual image we're processing
+            if ('metadata' in version and
+                    'container' in version['metadata'] and
+                    'tags' in version['metadata']['container']):
+                image_tags = version['metadata']['container']['tags']
+            else:
+                image_tags = []
 
             # Parse either the update-at timestamp, or the created-at timestamp
             # depending on which on the user has specified that we should use
@@ -282,27 +289,20 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
 
             if inputs.cut_off < updated_or_created_at:
                 if inputs.verbose:
-                    print(f'[DEBUG] Skipping because it\'s above our datetime cut-off'
+                    print(f'[DEBUG] Skipping image with tags ({image_tags}) because it\'s above our datetime cut-off'
                           f' we\'re only looking to delete containers older than some timestamp')
                 continue
 
-            # Load the tags for the individual image we're processing
-            if ('metadata' in version and
-                    'container' in version['metadata'] and
-                    'tags' in version['metadata']['container']):
-                image_tags = version['metadata']['container']['tags']
-            else:
-                image_tags = []
-
             if inputs.untagged_only and image_tags:
                 if inputs.verbose:
-                    print(f'[DEBUG] Skipping because no tagged images should be deleted '
+                    print(f'[DEBUG] Skipping image with tags ({image_tags}) because no tagged images should be deleted '
                           f'We could proceed if image_tags was empty, but it\'s not')
                 continue
 
             if not image_tags and not inputs.filter_include_untagged:
                 if inputs.verbose:
-                    print(f'[DEBUG] Skipping, because the filter_include_untagged setting is False')
+                    print(f'[DEBUG] Skipping image with tags ({image_tags}) because the filter_include_untagged'
+                          f' setting is False')
                 continue
 
             delete_image = not inputs.filter_tags
@@ -316,7 +316,9 @@ async def get_and_delete_old_versions(image_name: ImageName, inputs: Inputs, htt
 
             for skip_tag in inputs.skip_tags:
                 if any(fnmatch(tag, skip_tag) for tag in image_tags):
-                    # Skipping because this image version is tagged with a protected tag
+                    if inputs.verbose:
+                        print(f'[DEBUG] Skipping image with tags ({image_tags}) because this image version is tagged '
+                              f'with a protected tag')
                     delete_image = False
 
             if delete_image:
