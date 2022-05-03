@@ -362,6 +362,7 @@ async def main(
         keep_at_least: str,
         filter_tags: str,
         filter_include_untagged: str,
+        verbose: str,
 ) -> None:
     """
     Delete old image versions.
@@ -388,6 +389,7 @@ async def main(
     :param filter_tags: Comma-separated list of tags to consider for deletion.
         Supports wildcard '*', '?', '[seq]' and '[!seq]' via Unix shell-style wildcards
     :param filter_include_untagged: Whether to consider untagged images for deletion.
+    :param verbose: Whether to output relevant information for deletion.
     """
     inputs = Inputs(
         image_names=image_names,
@@ -400,6 +402,7 @@ async def main(
         keep_at_least=keep_at_least,
         filter_tags=filter_tags,
         filter_include_untagged=filter_include_untagged,
+        verbose=verbose,
     )
     async with AsyncClient(
             headers={'accept': 'application/vnd.github.v3+json', 'Authorization': f'Bearer {token}'}
